@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>✨ Sparkle Cam ✨</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: 'Quicksand', 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #ffe0f0 0%, #e8d5ff 50%, #d5f5ff 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 0 80px rgba(255, 182, 216, 0.3);
+  }
+
+  /* HEADER */
+  .header {
+    padding: 18px 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #ff9ed8 0%, #c084fc 50%, #7dd3fc 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(255, 155, 217, 0.4);
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+    animation: shine 4s ease-in-out infinite;
+  }
+  @keyframes shine {
+    0%, 100% { transform: translate(-30%, -30%) rotate(0deg); }
+    50% { transform: translate(30%, 30%) rotate(180deg); }
+  }
+  .header h1 {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  /* CAMERA SCREEN */
+  .screen {
+    flex: 1;
+    margin: 16px;
+    background: #1e1626;
+    border-radius: 28px;
+    border: 6px solid #fff;
+    overflow: hidden;
+    position: relative;
+    min-height: 380px;
+    box-shadow:
+      0 10px 40px rgba(255, 150, 200, 0.4),
+      inset 0 0 0 3px rgba(255,255,255,0.15),
+      0 0 0 1px rgba(255,255,255,0.1);
+  }
+
+  .screen video,
+  .screen canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .screen video { z-index: 1; display: block; }
+  .screen canvas { z-index: 2; display: none; }
+
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    text-align: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255, 182, 217, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(192, 132, 252, 0.15) 0%, transparent 50%),
+      linear-gradient(135deg, #1e1626 0%, #2a1f2d 100%);
+  }
+  .placeholder .ico {
+    font-size: 80px;
+    margin-bottom: 16px;
+    animation: floaty 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(255, 182, 217, 0.8));
+  }
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0) rotate(-3deg) scale(1); }
+    50% { transform: translateY(-20px) rotate(3deg) scale(1.05); }
+  }
+  .placeholder h3 {
+    color: #fff5fa;
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .placeholder p {
+    color: #ffb6d9;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  /* FLASH */
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, #ffffff 0%, #fff5fa 40%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .flash.on { animation: cameraFlash 0.6s ease-out; }
+  @keyframes cameraFlash {
+    0% { opacity: 0.95; }
+    100% { opacity: 0; }
+  }
+
+  /* LOADING */
+  .loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, rgba(255, 182, 217, 0.98), rgba(192, 132, 252, 0.98));
+    color: white;
+    padding: 16px 32px;
+    border-radius: 32px;
+    font-weight: 700;
+    font-size: 17px;
+    z-index: 9;
+    display: none;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(255, 150, 200, 0.6);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+  .loader.on {
+    display: block;
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+  }
+
+  /* CONTROL PANEL */
+  .panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    flex-shrink: 0;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -8px 30px rgba(255, 150, 200, 0.25);
+    padding: 16px 16px 24px;
+    border-top: 2px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .section {
+    text-align: center;
+    color: #c9629a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 10px 0 8px;
+    opacity: 0.8;
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    padding: 10px 16px;
+    border-radius: 24px;
+    border: 2.5px solid #ffb6d9;
+    background: white;
+    color: #c9629a;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 8px rgba(255, 182, 217, 0.25);
+    font-family: inherit;
+  }
+  .chip:active { transform: scale(0.9); }
+  .chip.on {
+    background: linear-gradient(135deg, #ff9ed8, #c084fc);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(255, 155, 217, 0.5);
+    transform: scale(1.05);
+  }
+
+  /* STICKERS */
+  .sticks {
+    display: none;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 12px 8px;
+    background: linear-gradient(135deg, #fff5fa, #f0e6ff);
+    border-radius: 20px;
+    margin: 8px 0;
+    border: 2px dashed #ffd0e8;
+  }
+  .sticks.on {
+    display: flex;
+    animation: slideUp 0.3s ease-out;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .sticker {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    border: 2.5px solid #ffd0e8;
+    background: white;
+    font-size: 28px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 0 3px 10px rgba(255, 182, 217, 0.35);
+    touch-action: none;
+  }
+  .sticker:active {
+    background: #fff0f7;
+    transform: scale(0.85) rotate(-8deg);
+    box-shadow: 0 2px 6px rgba(255, 182, 217, 0.5);
+    cursor: grabbing;
+  }
+
+  /* ACTION BUTTONS */
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 0 4px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.85); }
+
+  .shutter {
+    width: 78px;
+    height: 78px;
+    background: linear-gradient(135deg, #ff9ed8 0%, #ff7bbf 50%, #c084fc 100%);
+    font-size: 34px;
+    border: 5px solid white;
+    box-shadow:
+      0 8px 24px rgba(255, 155, 217, 0.6),
+      0 0 0 4px rgba(255, 255, 255, 0.3),
+      inset 0 2px 4px rgba(255,255,255,0.4);
+  }
+  .shutter.added {
+    box-shadow:
+      0 0 0 8px rgba(255, 155, 217, 0.35),
+      0 8px 24px rgba(255, 155, 217, 0.6),
+      0 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+
+  .side {
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+    background: linear-gradient(135deg, #ffd0e8, #f0c4ff);
+    border: 3px solid white;
+    box-shadow: 0 4px 12px rgba(255, 182, 217, 0.4);
+  }
+  .side.has-pics::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b9d, #ff9ed8);
+    border: 2.5px solid white;
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.6);
+  }
+
+  /* GALLERY MODAL */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 22, 38, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.25s ease;
+  }
+  .modal.on { display: flex; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-box {
+    background: white;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    border: 4px solid white;
+    animation: popUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popUp {
+    from { opacity: 0; transform: scale(0.85) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-head {
+    padding: 16px 20px;
+    border-bottom: 2px solid #ffe0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-head h3 {
+    color: #c9629a;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .modal-close {
+    background: linear-gradient(135deg, #ffd0e8, #f0c4ff);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #c9629a;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255, 182, 217, 0.4);
+    transition: transform 0.2s;
+  }
+  .modal-close:active { transform: scale(0.85); }
+
+  .modal-body {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+
+  .photo {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 3px solid #ffd0e8;
+    aspect-ratio: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 182, 217, 0.35);
+    transition: transform 0.2s;
+    background: #f8f8f8;
+  }
+  .photo:active { transform: scale(0.93); }
+  .photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .photo .act {
+    position: absolute;
+    bottom: 5px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid white;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: transform 0.15s;
+  }
+  .act:active { transform: scale(0.8); }
+  .dl { background: #7dd3fc; color: white; right: 5px; }
+  .rm { background: #ff9ed8; color: white; right: 38px; }
+
+  .empty {
+    grid-column: 1/-1;
+    text-align: center;
+    color: #c0a0b0;
+    padding: 36px;
+    font-size: 14px;
+  }
+
+  /* SPARKLES */
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    font-size: 26px;
+    animation: rise 1.2s ease-out forwards;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-140px) scale(0.3) rotate(200deg); opacity: 0; }
+  }
+
+  /* DRAG GHOST */
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 200;
+    font-size: 40px;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    transition: none;
+  }
+
+  /* STICKER INDICATOR ON SCREEN */
+  .stick-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #c9629a;
+    z-index: 8;
+    display: none;
+    box-shadow: 0 2px 8px rgba(255, 182, 217, 0.4);
+  }
+  .stick-indicator.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>✨ Sparkle Cam ✨</h1>
+  </div>
+
+  <div class="screen" id="screen">
+    <video id="cam" autoplay playsinline muted style="display:none;"></video>
+    <canvas id="show"></canvas>
+    <canvas id="snap" style="display:none;"></canvas>
+
+    <div class="placeholder" id="ph">
+      <div class="ico">📷</div>
+      <h3>Tap the camera!</h3>
+      <p>Take the cutest photos ever ✨</p>
+    </div>
+
+    <div class="flash" id="flash"></div>
+    <div class="loader" id="loader">
+      <span style="font-size:26px;display:block;margin-bottom:4px;">📸</span>
+      Developing your photo...
+    </div>
+    <div class="stick-indicator" id="stickInd">Drag me! 👆</div>
+  </div>
+
+  <div class="panel">
+    <div class="section">✨ Filters</div>
+    <div class="row" id="filters">
+      <button class="chip on" data-f="none">🌈 Normal</button>
+      <button class="chip" data-f="sparkle">✨ Sparkle</button>
+      <button class="chip" data-f="vintage">💜 Vintage</button>
+      <button class="chip" data-f="pop">🎀 Pop</button>
+      <button class="chip" data-f="dreamy">💕 Dreamy</button>
+      <button class="chip" data-f="bw">🖤 B&W</button>
+    </div>
+
+    <div class="section">🖼️ Frames</div>
+    <div class="row" id="frames">
+      <button class="chip on" data-f="none">✨ None</button>
+      <button class="chip" data-f="polaroid">📷 Polaroid</button>
+      <button class="chip" data-f="cute">🌸 Cute</button>
+      <button class="chip" data-f="glow">💫 Glow</button>
+      <button class="chip" data-f="rainbow">🌈 Rainbow</button>
+      <button class="chip" data-f="neon">💜 Neon</button>
+    </div>
+
+    <button class="chip" id="stickToggle" style="margin:10px auto;display:block;min-width:160px;font-size:14px;">
+      🎨 Stickers <span id="stickCount">(0)</span>
+    </button>
+
+    <div class="sticks" id="sticks">
+      <button class="sticker" data-s="💖">💖</button>
+      <button class="sticker" data-s="⭐">⭐</button>
+      <button class="sticker" data-s="🦄">🦄</button>
+      <button class="sticker" data-s="🐱">🐱</button>
+      <button class="sticker" data-s="🎀">🎀</button>
+      <button class="sticker" data-s="🌸">🌸</button>
+      <button class="sticker" data-s="🌈">🌈</button>
+      <button class="sticker" data-s="🦋">🦋</button>
+      <button class="sticker" data-s="🌷">🌷</button>
+      <button class="sticker" data-s="💝">💝</button>
+      <button class="sticker" data-s="👑">👑</button>
+      <button class="sticker" data-s="🧁">🧁</button>
+      <button class="sticker" data-s="🍓">🍓</button>
+      <button class="sticker" data-s="💅">💅</button>
+      <button class="sticker" data-s="👛">👛</button>
+      <button class="sticker" data-s="🎠">🎠</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn side" id="galBtn">🖼️</button>
+      <button class="btn shutter" id="shutter">📸</button>
+      <button class="btn side" id="clearBtn">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>🖼️ My Sparkle Photos</h3>
+      <button class="modal-close" id="closeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Drag ghost element -->
+<div class="drag-ghost" id="dragGhost" style="display:none;"></div>
+
+<script>
+(function(){
+  const video = document.getElementById('cam');
+  const show = document.getElementById('show');
+  const ctx = show.getContext('2d');
+  const snap = document.getElementById('snap');
+  const sctx = snap.getContext('2d');
+  const screen = document.getElementById('screen');
+  const ph = document.getElementById('ph');
+  const flash = document.getElementById('flash');
+  const loader = document.getElementById('loader');
+  const modal = document.getElementById('modal');
+  const gallery = document.getElementById('gallery');
+  const sticks = document.getElementById('sticks');
+  const stickToggle = document.getElementById('stickToggle');
+  const stickCountEl = document.getElementById('stickCount');
+  const stickInd = document.getElementById('stickInd');
+  const galBtn = document.getElementById('galBtn');
+  const shutter = document.getElementById('shutter');
+  const clearBtn = document.getElementById('clearBtn');
+  const dragGhost = document.getElementById('dragGhost');
+
+  let stream = null;
+  let photos = [];
+  let filter = 'none';
+  let frame = 'none';
+  let stickers = [];
+  let sticksOpen = false;
+  let viewing = false;
+  let rafId = null;
+
+  // Drag state for stickers
+  let dragging = null; // { index, startX, startY, origX, origY }
+  let dragStartTime = 0;
+
+  function size(){
+    const r = screen.getBoundingClientRect();
+    const w = Math.floor(r.width);
+    const h = Math.floor(r.height);
+    show.width = w; show.height = h;
+    snap.width = w; snap.height = h;
+    return { w, h };
+  }
+
+  function startCamera(){
+    if(stream){
+      video.style.display = 'block';
+      ph.style.display = 'none';
+      if(!rafId) drawLoop();
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    }).then(s => {
+      stream = s;
+      video.srcObject = stream;
+      video.style.display = 'block';
+      ph.style.display = 'none';
+      size();
+      drawLoop();
+    }).catch(() => {
+      ph.querySelector('h3').textContent = '📸 Tap to start!';
+      ph.querySelector('p').textContent = 'Allow camera access for magic ✨';
+    });
+  }
+
+  // --- FILTERS ---
+  function applyFilter(ctx, w, h){
+    if(filter === 'none') return;
+    const img = ctx.getImageData(0,0,w,h);
+    const d = img.data;
+
+    if(filter === 'sparkle'){
+      for(let i=0;i<d.length;i+=4){
+        d[i]   = Math.min(255, d[i]*1.3);
+        d[i+1] = Math.min(255, d[i+1]*1.15);
+        d[i+2] = Math.min(255, d[i+2]*1.4);
+      }
+    } else if(filter === 'vintage'){
+      for(let i=0;i<d.length;i+=4){
+        const a = (d[i]+d[i+1]+d[i+2])/3;
+        d[i]   = Math.min(255, d[i]*0.8 + a*0.3 + 30);
+        d[i+1] = Math.min(255, d[i+1]*0.7 + a*0.2 + 20);
+        d[i+2] = Math.min(255, d[i+2]*0.6 + 10);
+      }
+    } else if(filter === 'pop'){
+      for(let i=0;i<d.length;i+=4){
+        d[i]   = Math.min(255, d[i]*1.2 + 25);
+        d[i+1] = Math.min(255, d[i+1]*1.05);
+        d[i+2] = Math.min(255, d[i+2]*1.25 + 15);
+      }
+    } else if(filter === 'dreamy'){
+      for(let i=0;i<d.length;i+=4){
+        d[i]   = Math.min(255, d[i]*1.15 + 35);
+        d[i+1] = Math.min(255, d[i+1]*0.9 + 25);
+        d[i+2] = Math.min(255, d[i+2]*1.2 + 40);
+      }
+    } else if(filter === 'bw'){
+      for(let i=0;i<d.length;i+=4){
+        const a = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+        d[i] = d[i+1] = d[i+2] = a;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  }
+
+  // --- FRAMES ---
+  function drawFrame(ctx, w, h){
+    if(frame === 'none') return;
+    const colors = ['#ff9ed8','#c084fc','#7dd3fc','#ffd700','#ff6b9d','#34d399'];
+    const t = Date.now();
+
+    if(frame === 'polaroid'){
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 24;
+      ctx.strokeRect(12, 12, w-24, h-24);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(w/2 - 60, h - 72, 120, 36);
+      ctx.fillStyle = '#ff9ed8';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('💖', w/2, h - 45);
+    } else if(frame === 'cute'){
+      ctx.strokeStyle = '#ffb6d9';
+      ctx.lineWidth = 20;
+      ctx.setLineDash([18, 10]);
+      ctx.lineCap = 'round';
+      ctx.strokeRect(10, 10, w-20, h-20);
+      ctx.setLineDash([]);
+    } else if(frame === 'glow'){
+      const c = colors[Math.floor(t/350) % colors.length];
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 10 + Math.sin(t/150)*5;
+      ctx.shadowColor = c;
+      ctx.shadowBlur = 20;
+      ctx.strokeRect(8, 8, w-16, h-16);
+      ctx.shadowBlur = 0;
+    } else if(frame === 'rainbow'){
+      const rainbow = ['#ff9ed8','#ffd0e8','#fff5fa','#d5f5ff','#c084fc','#ff9ed8'];
+      rainbow.forEach((c, i) => {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(3 + i*3, 3 + i*3, w - 6 - i*6, h - 6 - i*6);
+      });
+    } else if(frame === 'neon'){
+      ctx.strokeStyle = '#ff6b9d';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#ff6b9d';
+      ctx.shadowBlur = 15;
+      ctx.strokeRect(6, 6, w-12, h-12);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#c084fc';
+      ctx.shadowColor = '#c084fc';
+      ctx.shadowBlur = 15;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(14, 14, w-28, h-28);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // --- STICKERS ---
+  function drawStickers(ctx, w, h){
+    stickers.forEach((s, i) => {
+      const fontSize = Math.max(28, Math.floor(w * s.size));
+      ctx.font = fontSize + 'px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Draw selection ring if this is the dragged sticker
+      if(dragging && dragging.index === i){
+        ctx.save();
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 20;
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(s.x * w, s.y * h, fontSize * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 10;
+      ctx.fillText(s.emoji, s.x * w, s.y * h);
+      ctx.shadowBlur = 0;
+    });
+  }
+
+  function updateStickerCount(){
+    stickCountEl.textContent = '(' + stickers.length + ')';
+    stickInd.classList.toggle('show', stickers.length > 0);
+  }
+
+  // --- RENDER LOOP ---
+  function drawScene(target, w, h){
+    target.clearRect(0,0,w,h);
+    target.drawImage(video,0,0,w,h);
+    applyFilter(target, w, h);
+    drawFrame(target, w, h);
+    drawStickers(target, w, h);
+  }
+
+  function drawLoop(){
+    if(viewing || !stream){
+      rafId = null;
+      return;
+    }
+    const {w, h} = size();
+    drawScene(ctx, w, h);
+    show.style.display = 'block';
+    rafId = requestAnimationFrame(drawLoop);
+  }
+
+  function stopLoop(){
+    if(rafId){
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  // --- SHOOT ---
+  function shoot(){
+    if(viewing){
+      viewing = false;
+      snap.style.display = 'none';
+      video.style.display = 'block';
+      show.style.display = 'none';
+      drawLoop();
+      return;
+    }
+    if(!stream){ startCamera(); return; }
+
+    flash.classList.add('on');
+    setTimeout(() => flash.classList.remove('on'), 600);
+    loader.classList.add('on');
+
+    setTimeout(() => {
+      const {w, h} = size();
+      drawScene(sctx, w, h);
+      loader.classList.remove('on');
+
+      photos.push({
+        data: snap.toDataURL('image/jpeg', 0.92),
+        time: new Date().toLocaleTimeString(),
+        filter, frame,
+        stickers: stickers.map(s => ({...s}))
+      });
+
+      spawnSparkles();
+      updateStickerCount();
+      save();
+    }, 900);
+  }
+
+  // --- SPARKLES ---
+  function spawnSparkles(){
+    const sym = ['⭐','✨','💖','🌟','💫','🦄','🌈','💕','🎀','🌸'];
+    for(let i=0; i<18; i++){
+      const s = document.createElement('div');
+      s.className = 'sparkle';
+      s.textContent = sym[Math.floor(Math.random()*sym.length)];
+      s.style.left = (5 + Math.random()*90) + 'vw';
+      s.style.top = (10 + Math.random()*80) + 'vh';
+      s.style.fontSize = (24 + Math.random()*26) + 'px';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 1200);
+    }
+  }
+
+  // --- DRAG HANDLERS FOR STICKERS ---
+  function getEventPos(e){
+    if(e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if(e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function findStickerAt(cx, cy){
+    const rect = screen.getBoundingClientRect();
+    const x = (cx - rect.left) / rect.width;
+    const y = (cy - rect.top) / rect.height;
+    const w = show.width;
+    const h = show.height;
+
+    // Check from top (last drawn) to bottom
+    for(let i = stickers.length - 1; i >= 0; i--){
+      const s = stickers[i];
+      const fontSize = Math.max(28, Math.floor(w * s.size));
+      const dx = (s.x * w) - (x * w);
+      const dy = (s.y * h) - (y * h);
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      // Hit radius ~1.2x the font size (in pixels)
+      if(dist < fontSize * 1.2) return i;
+    }
+    return -1;
+  }
+
+  function onDragStart(e){
+    if(!stream || viewing) return;
+    const pos = getEventPos(e);
+    const idx = findStickerAt(pos.x, pos.y);
+    if(idx === -1) return;
+
+    e.preventDefault();
+    dragging = {
+      index: idx,
+      startX: pos.x,
+      startY: pos.y,
+      origX: stickers[idx].x,
+      origY: stickers[idx].y
+    };
+    dragStartTime = Date.now();
+
+    // Show ghost
+    dragGhost.textContent = stickers[idx].emoji;
+    dragGhost.style.display = 'block';
+    dragGhost.style.left = pos.x + 'px';
+    dragGhost.style.top = pos.y + 'px';
+  }
+
+  function onDragMove(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const pos = getEventPos(e);
+
+    // Move ghost
+    dragGhost.style.left = pos.x + 'px';
+    dragGhost.style.top = pos.y + 'px';
+
+    // Update sticker position
+    const rect = screen.getBoundingClientRect();
+    let nx = (pos.x - rect.left) / rect.width;
+    let ny = (pos.y - rect.top) / rect.height;
+    nx = Math.max(0.15, Math.min(0.85, nx));
+    ny = Math.max(0.15, Math.min(0.85, ny));
+    stickers[dragging.index].x = nx;
+    stickers[dragging.index].y = ny;
+  }
+
+  function onDragEnd(e){
+    if(!dragging) return;
+    const pos = getEventPos(e);
+    dragGhost.style.display = 'none';
+
+    // If barely moved, treat as tap (center it nicely)
+    const dx = pos.x - dragging.startX;
+    const dy = pos.y - dragging.startY;
+    if(Math.abs(dx) < 5 && Math.abs(dy) < 5 && (Date.now() - dragStartTime) < 200){
+      // Small nudge
+      stickers[dragging.index].x = dragging.origX;
+      stickers[dragging.index].y = dragging.origY;
+    }
+
+    dragging = null;
+  }
+
+  screen.addEventListener('mousedown', onDragStart);
+  screen.addEventListener('mousemove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
+
+  screen.addEventListener('touchstart', onDragStart, { passive: false });
+  screen.addEventListener('touchmove', onDragMove, { passive: false });
+  window.addEventListener('touchend', onDragEnd);
+
+  // --- FILTERS & FRAMES ---
+  document.getElementById('filters').addEventListener('click', e => {
+    if(e.target.classList.contains('chip')){
+      filter = e.target.dataset.f;
+      document.querySelectorAll('#filters .chip').forEach(c => c.classList.remove('on'));
+      e.target.classList.add('on');
+    }
+  });
+
+  document.getElementById('frames').addEventListener('click', e => {
+    if(e.target.classList.contains('chip')){
+      frame = e.target.dataset.f;
+      document.querySelectorAll('#frames .chip').forEach(c => c.classList.remove('on'));
+      e.target.classList.add('on');
+    }
+  });
+
+  // --- STICKERS PANEL ---
+  stickToggle.addEventListener('click', () => {
+    sticksOpen = !sticksOpen;
+    sticks.classList.toggle('on', sticksOpen);
+    shutter.classList.toggle('added', sticksOpen);
+  });
+
+  document.querySelectorAll('.sticker').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const emoji = btn.dataset.s;
+      const spread = 0.3;
+      const x = 0.5 + (Math.random() - 0.5) * spread;
+      const y = 0.5 + (Math.random() - 0.5) * spread;
+      stickers.push({
+        emoji,
+        x: Math.max(0.2, Math.min(0.8, x)),
+        y: Math.max(0.2, Math.min(0.8, y)),
+        size: 0.12
+      });
+      updateStickerCount();
+
+      // Subtle haptic-like visual feedback
+      btn.style.transform = 'scale(0.7)';
+      setTimeout(() => btn.style.transform = '', 150);
+    });
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if(!stickers.length) return;
+    stickers = [];
+    updateStickerCount();
+    clearBtn.style.transform = 'scale(0.7) rotate(-15deg)';
+    setTimeout(() => clearBtn.style.transform = '', 250);
+  });
+
+  shutter.addEventListener('click', shoot);
+
+  // --- GALLERY ---
+  galBtn.addEventListener('click', openGallery);
+  document.getElementById('closeModal').addEventListener('click', closeGallery);
+  modal.addEventListener('click', e => { if(e.target === modal) closeGallery(); });
+
+  function openGallery(){
+    renderGallery();
+    modal.classList.add('on');
+    galBtn.classList.add('has-pics');
+  }
+  function closeGallery(){ modal.classList.remove('on'); }
+
+  function renderGallery(){
+    gallery.innerHTML = '';
+    if(!photos.length){
+      gallery.innerHTML = '<div class="empty">No photos yet!<br>Start snapping! 📸</div>';
+      return;
+    }
+    [...photos].reverse().forEach((p, idx) => {
+      const i = photos.length - 1 - idx;
+      const card = document.createElement('div');
+      card.className = 'photo';
+      card.innerHTML =
+        '<img src="' + p.data + '">' +
+        '<button class="act rm" data-i="' + i + '">🗑️</button>' +
+        '<button class="act dl" data-i="' + i + '">⬇️</button>';
+      card.addEventListener('click', e => {
+        if(e.target.tagName === 'BUTTON') return;
+        viewPhoto(i);
+      });
+      gallery.appendChild(card);
+    });
+    gallery.querySelectorAll('.rm').forEach(b => b.addEventListener('click', () => deletePhoto(+b.dataset.i)));
+    gallery.querySelectorAll('.dl').forEach(b => b.addEventListener('click', () => downloadPhoto(+b.dataset.i)));
+  }
+
+  function viewPhoto(i){
+    viewing = true;
+    stopLoop();
+    const img = new Image();
+    img.onload = () => {
+      const {w, h} = size();
+      sctx.clearRect(0,0,w,h);
+      sctx.drawImage(img,0,0,w,h);
+      snap.style.display = 'block';
+      show.style.display = 'none';
+      closeGallery();
+    };
+    img.src = photos[i].data;
+  }
+
+  function deletePhoto(i){
+    photos.splice(i,1);
+    renderGallery();
+    save();
+    if(!photos.length) galBtn.classList.remove('has-pics');
+  }
+
+  function downloadPhoto(i){
+    const a = document.createElement('a');
+    a.href = photos[i].data;
+    a.download = 'sparkle-photo-' + (i+1) + '.jpg';
+    a.click();
+  }
+
+  function save(){ try{ localStorage.setItem('sparklePhotos', JSON.stringify(photos)); } catch(e){} }
+  function load(){
+    try{
+      const d = localStorage.getItem('sparklePhotos');
+      if(d){
+        photos = JSON.parse(d);
+        if(photos.length) galBtn.classList.add('has-pics');
+      }
+    } catch(e){}
+  }
+
+  window.addEventListener('resize', () => {
+    if(stream && !viewing) size();
+  });
+
+  setTimeout(() => {
+    size();
+    startCamera();
+    load();
+  }, 300);
+})();
+</script>
+</body>
+</html>

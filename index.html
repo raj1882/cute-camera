@@ -30,7 +30,6 @@
     box-shadow: 0 0 50px rgba(255, 182, 216, 0.35);
   }
 
-  /* HEADER */
   .header {
     padding: 12px 16px;
     text-align: center;
@@ -58,7 +57,6 @@
   }
   .header h1 { position: relative; z-index: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-  /* SCREEN — fixed aspect ratio container so preview never squashes */
   .screen-wrap {
     flex: 1;
     margin: 10px;
@@ -84,8 +82,8 @@
     height: 100%;
     object-fit: cover;
   }
-  .screen video { z-index: 1; display: block; }
-  .screen canvas { z-index: 2; display: none; }
+  .screen video { z-index: 1; display: none; }
+  .screen canvas { z-index: 2; display: block; }
 
   .placeholder {
     position: absolute;
@@ -115,7 +113,6 @@
   .placeholder h3 { color: #fff5fa; font-size: 18px; margin-bottom: 6px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   .placeholder p { color: #ffb6d9; font-size: 13px; opacity: 0.9; }
 
-  /* FLASH */
   .flash {
     position: absolute; inset: 0;
     background: radial-gradient(circle, #fff 0%, #fff5fa 40%, transparent 70%);
@@ -124,7 +121,6 @@
   .flash.on { animation: camFlash 0.55s ease-out; }
   @keyframes camFlash { 0%{opacity:0.92} 100%{opacity:0} }
 
-  /* LOADER */
   .loader {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%,-50%);
@@ -138,7 +134,6 @@
   .loader.on { display: block; animation: pulse 0.7s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.05)} }
 
-  /* PANEL */
   .panel {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
@@ -236,7 +231,6 @@
     transform: scale(0.82) rotate(-5deg);
   }
 
-  /* ACTIONS — shutter always visible at bottom */
   .actions {
     display: flex;
     align-items: center;
@@ -299,7 +293,6 @@
     box-shadow: 0 1px 4px rgba(255, 107, 157, 0.6);
   }
 
-  /* MODAL */
   .modal {
     position: fixed; inset: 0;
     background: rgba(30, 22, 38, 0.7);
@@ -387,7 +380,6 @@
   .rm { background: #ff9ed8; color: white; right: 30px; }
   .empty { grid-column: 1/-1; text-align: center; color: #c0a0b0; padding: 24px; font-size: 13px; }
 
-  /* SPARKLES */
   .sparkle {
     position: fixed;
     pointer-events: none;
@@ -400,7 +392,6 @@
     100% { transform: translateY(-110px) scale(0.3) rotate(160deg); opacity: 0; }
   }
 
-  /* DRAG GHOST */
   .drag-ghost {
     position: fixed;
     pointer-events: none;
@@ -557,21 +548,20 @@
   let viewing = false;
   let rafId = null;
   let facingMode = 'environment';
+  let cw = 0, ch = 0;
 
   // Drag state
   let dragging = null;
   let dragStartTime = 0;
 
-  // Keep canvas square-ish and match the visible screen area
   function size(){
     const r = screen.getBoundingClientRect();
-    const w = Math.floor(r.width);
-    const h = Math.floor(r.height);
-    show.width = w;
-    show.height = h;
-    snap.width = w;
-    snap.height = h;
-    return { w, h };
+    cw = Math.floor(r.width);
+    ch = Math.floor(r.height);
+    show.width = cw;
+    show.height = ch;
+    snap.width = cw;
+    snap.height = ch;
   }
 
   function stopLoop(){
@@ -593,8 +583,9 @@
   function startCamera(){
     if(stream){
       video.srcObject = stream;
-      video.style.display = 'block';
+      video.style.display = 'none';
       ph.style.display = 'none';
+      show.style.display = 'block';
       if(!rafId) drawLoop();
       return;
     }
@@ -607,8 +598,9 @@
     }).then(s => {
       stream = s;
       video.srcObject = stream;
-      video.style.display = 'block';
+      video.style.display = 'none';
       ph.style.display = 'none';
+      show.style.display = 'block';
       size();
       drawLoop();
     }).catch(() => {
@@ -626,6 +618,31 @@
       flipBtn.style.transform = 'scale(0.75) rotate(-20deg)';
       setTimeout(() => flipBtn.style.transform = '', 160);
     }, 120);
+  }
+
+  // Draw video with "cover" fit (no squashing)
+  function drawVideoCover(ctx, vid, x, y, w, h){
+    const vw = vid.videoWidth || w;
+    const vh = vid.videoHeight || h;
+    if(!vw || !vh){
+      ctx.drawImage(vid, x, y, w, h);
+      return;
+    }
+    const imgRatio = vw / vh;
+    const canvasRatio = w / h;
+    let sx, sy, sw, sh;
+    if(imgRatio > canvasRatio){
+      sh = vh;
+      sw = sh * canvasRatio;
+      sx = (vw - sw) / 2;
+      sy = 0;
+    } else {
+      sw = vw;
+      sh = sw / canvasRatio;
+      sx = 0;
+      sy = (vh - sh) / 2;
+    }
+    ctx.drawImage(vid, sx, sy, sw, sh, x, y, w, h);
   }
 
   // --- FILTERS ---
@@ -742,7 +759,7 @@
 
   function drawScene(target, w, h){
     target.clearRect(0,0,w,h);
-    target.drawImage(video,0,0,w,h);
+    drawVideoCover(target, video, 0, 0, w, h);
     applyFilter(target, w, h);
     drawFrame(target, w, h);
     drawStickers(target, w, h);
@@ -750,8 +767,7 @@
 
   function drawLoop(){
     if(viewing || !stream){ rafId = null; return; }
-    const {w, h} = size();
-    drawScene(ctx, w, h);
+    drawScene(ctx, cw, ch);
     show.style.display = 'block';
     rafId = requestAnimationFrame(drawLoop);
   }
@@ -760,8 +776,7 @@
     if(viewing){
       viewing = false;
       snap.style.display = 'none';
-      video.style.display = 'block';
-      show.style.display = 'none';
+      show.style.display = 'block';
       drawLoop();
       return;
     }
@@ -772,8 +787,7 @@
     loader.classList.add('on');
 
     setTimeout(() => {
-      const {w, h} = size();
-      drawScene(sctx, w, h);
+      drawScene(sctx, cw, ch);
       loader.classList.remove('on');
 
       photos.push({
@@ -814,12 +828,11 @@
     const rect = screen.getBoundingClientRect();
     const x = (cx - rect.left) / rect.width;
     const y = (cy - rect.top) / rect.height;
-    const w = show.width, h = show.height;
     for(let i = stickers.length - 1; i >= 0; i--){
       const s = stickers[i];
-      const fontSize = Math.max(24, Math.floor(w * s.size));
-      const dx = (s.x*w) - (x*w);
-      const dy = (s.y*h) - (y*h);
+      const fontSize = Math.max(24, Math.floor(cw * s.size));
+      const dx = (s.x*cw) - (x*cw);
+      const dy = (s.y*ch) - (y*ch);
       if(Math.sqrt(dx*dx + dy*dy) < fontSize * 1.3) return i;
     }
     return -1;
@@ -966,9 +979,7 @@
     stopLoop();
     const img = new Image();
     img.onload = () => {
-      const {w, h} = size();
-      sctx.clearRect(0,0,w,h);
-      sctx.drawImage(img,0,0,w,h);
+      drawScene(sctx, cw, ch);
       snap.style.display = 'block';
       show.style.display = 'none';
       closeGallery();
